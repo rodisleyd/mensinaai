@@ -319,6 +319,7 @@ export default function App() {
   const [progress, setProgress] = useState<Progress[]>([]);
   const [activeModule, setActiveModule] = useState<Module | null>(null);
   const [view, setView] = useState<'landing' | 'home' | 'course' | 'quiz' | 'result' | 'dashboard'>('landing');
+  const [isLoading, setIsLoading] = useState(false);
   const [courses, setCourses] = useState<Course[]>([]);
   const [allProgress, setAllProgress] = useState<Progress[]>([]);
   const [quizScore, setQuizScore] = useState(0);
