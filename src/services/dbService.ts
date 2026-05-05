@@ -115,6 +115,17 @@ export const getProgress = async (userId: string, courseId: string) => {
   }
 };
 
+export const getAllUserProgress = async (userId: string) => {
+  try {
+    const q = query(collection(db, `users/${userId}/progress`));
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Progress[];
+  } catch (error) {
+    handleFirestoreError(error, OperationType.LIST, `users/${userId}/progress`);
+    return [];
+  }
+};
+
 export const updateProgress = async (userId: string, courseId: string, moduleId: string, score: number, completed: boolean) => {
   try {
     const progressRef = doc(db, `users/${userId}/progress`, `${courseId}_${moduleId}`);

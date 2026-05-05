@@ -17,7 +17,11 @@ import {
   Download,
   Search,
   X,
-  HelpCircle
+  HelpCircle,
+  LayoutDashboard,
+  TrendingUp,
+  Award,
+  Trophy
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import Markdown from 'react-markdown';
@@ -25,7 +29,7 @@ import { auth, signInWithGoogle } from './lib/firebase';
 import { onAuthStateChanged, User, signOut } from 'firebase/auth';
 import { cn } from './lib/utils';
 import { generateCourseFromText, getQuickExplanation, generateDidacticLesson } from './services/aiService';
-import { saveCourse, getUserCourses, getCourse, getModules, getProgress, updateProgress, deleteCourse } from './services/dbService';
+import { saveCourse, getUserCourses, getCourse, getModules, getProgress, getAllUserProgress, updateProgress, deleteCourse } from './services/dbService';
 import { exportCourseToPDF, exportDidacticLessonToPDF } from './lib/pdfExport';
 import { Course, Module, Progress, Question } from './types';
 
@@ -314,8 +318,9 @@ export default function App() {
   const [modules, setModules] = useState<Module[]>([]);
   const [progress, setProgress] = useState<Progress[]>([]);
   const [activeModule, setActiveModule] = useState<Module | null>(null);
-  const [view, setView] = useState<'home' | 'course' | 'quiz' | 'result'>('home');
-  const [isLoading, setIsLoading] = useState(false);
+  const [view, setView] = useState<'landing' | 'home' | 'course' | 'quiz' | 'result' | 'dashboard'>('landing');
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [allProgress, setAllProgress] = useState<Progress[]>([]);
   const [quizScore, setQuizScore] = useState(0);
 
   // Quick Search States
@@ -326,6 +331,13 @@ export default function App() {
   // Professor AI State
   const [didacticLesson, setDidacticLesson] = useState<string | null>(null);
   const [isGeneratingLesson, setIsGeneratingLesson] = useState(false);
+
+  useEffect(() => {
+    if (user && (view === 'home' || view === 'dashboard')) {
+      getUserCourses(user.uid).then(setCourses);
+      getAllUserProgress(user.uid).then(setAllProgress);
+    }
+  }, [user, view]);
 
   useEffect(() => {
     // Reset didactic lesson when changing modules
@@ -350,8 +362,10 @@ export default function App() {
     return onAuthStateChanged(auth, (u) => {
       setUser(u);
       if (!u) {
-        setView('home');
+        setView('landing');
         setCurrentCourse(null);
+      } else {
+        setView('home');
       }
     });
   }, []);
@@ -437,6 +451,123 @@ export default function App() {
     }
   };
 
+  const renderLanding = () => (
+    <div className="flex flex-col items-center justify-center min-h-screen text-center p-8">
+      <h1 className="text-8xl font-serif mb-8">Me Ensina Aí.</h1>
+      <p className="text-2xl font-serif italic text-ink/60 mb-12">A inteligência didática ao seu serviço.</p>
+      <button onClick={signInWithGoogle} className="bg-ink text-paper px-12 py-6 uppercase font-bold tracking-widest text-xs">Entrar com Google</button>
+    </div>
+  );
+
+  const renderDashboard = () => {
+    const totalCourses = courses.length;
+    const completedModules = allProgress.filter(p => p.completed).length;
+    const totalScores = allProgress.reduce((acc, p) => acc + (p.score || 0), 0);
+    const averageScore = allProgress.length > 0 ? (totalScores / allProgress.length).toFixed(1) : 0;
+    const passPercentage = allProgress.length > 0 ? ((allProgress.filter(p => p.completed).length / allProgress.length) * 100).toFixed(0) : 0;
+
+    return (
+      <div className="max-w-6xl mx-auto py-24 px-8 min-h-screen">
+        <div className="flex items-center justify-between mb-24">
+          <div className="flex items-center gap-6">
+            <button onClick={() => setView('home')} className="w-12 h-12 rounded-full border border-ink/10 flex items-center justify-center hover:bg-ink hover:text-paper transition-all">
+              <ChevronRight className="rotate-180" size={18} />
+            </button>
+            <div>
+              <span className="section-label">Painel de Controle</span>
+              <h2 className="text-6xl font-serif tracking-tighter">Seu Rendimento.</h2>
+            </div>
+          </div>
+          <div className="text-right hidden sm:block">
+            <span className="text-[10px] uppercase font-bold tracking-widest text-ink/30 block mb-1">Status Global</span>
+            <span className="px-3 py-1 bg-ink text-paper text-[10px] font-bold uppercase tracking-tighter rounded-full">Elite Learner</span>
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-24">
+          <div className="bg-surface p-10 border border-ink/10 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-ink/5 -mr-12 -mt-12 rounded-full group-hover:scale-150 transition-transform duration-700" />
+            <TrendingUp className="mb-6 text-ink/20" size={24} />
+            <div className="text-6xl font-serif tracking-tighter mb-2">{totalCourses}</div>
+            <p className="text-[10px] uppercase font-bold tracking-widest text-ink/40">Cursos Ativos</p>
+          </div>
+          
+          <div className="bg-surface p-10 border border-ink/10 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-ink/5 -mr-12 -mt-12 rounded-full group-hover:scale-150 transition-transform duration-700" />
+            <Award className="mb-6 text-ink/20" size={24} />
+            <div className="text-6xl font-serif tracking-tighter mb-2">{completedModules}</div>
+            <p className="text-[10px] uppercase font-bold tracking-widest text-ink/40">Conquistas (Módulos)</p>
+          </div>
+
+          <div className="bg-surface p-10 border border-ink/10 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-ink/5 -mr-12 -mt-12 rounded-full group-hover:scale-150 transition-transform duration-700" />
+            <Trophy className="mb-6 text-ink/20" size={24} />
+            <div className="text-6xl font-serif tracking-tighter mb-2">{averageScore}</div>
+            <p className="text-[10px] uppercase font-bold tracking-widest text-ink/40">Média em Simulados</p>
+          </div>
+
+          <div className="bg-surface p-10 border border-ink/10 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-ink/5 -mr-12 -mt-12 rounded-full group-hover:scale-150 transition-transform duration-700" />
+            <div className="mb-6 text-ink/20 font-bold text-xl">{passPercentage}%</div>
+            <div className="text-6xl font-serif tracking-tighter mb-2">{(allProgress.length || 0)}</div>
+            <p className="text-[10px] uppercase font-bold tracking-widest text-ink/40">Total de Desafios</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
+          <div>
+            <div className="flex items-center justify-between mb-12 pb-4 border-b border-ink/10">
+              <h3 className="text-2xl font-serif italic">Disciplinas em Foco</h3>
+              <span className="text-[10px] uppercase font-bold tracking-widest text-ink/30">Progresso Detalhado</span>
+            </div>
+            <div className="space-y-6">
+              {courses.length > 0 ? courses.map(course => {
+                const courseProg = allProgress.filter(p => p.courseId === course.id && p.completed);
+                // We don't have total module count for all courses here easily without fetching, 
+                // but we can estimate or show raw count for now.
+                return (
+                  <div key={course.id} className="group">
+                    <div className="flex justify-between items-end mb-3">
+                      <span className="font-bold text-lg group-hover:translate-x-2 transition-transform duration-300 block">{course.titulo}</span>
+                      <span className="text-[10px] font-mono text-ink/40">{courseProg.length} módulos</span>
+                    </div>
+                    <div className="h-1.5 w-full bg-ink/5 rounded-full overflow-hidden">
+                      <motion.div 
+                        initial={{ width: 0 }}
+                        animate={{ width: `${Math.min(100, (courseProg.length * 20))}%` }} // Simplified visual progress
+                        className="h-full bg-ink/40 group-hover:bg-ink transition-colors"
+                      />
+                    </div>
+                  </div>
+                );
+              }) : (
+                <div className="py-12 text-center border border-dashed border-ink/10 opacity-40">
+                  Nenhum curso iniciado ainda.
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="bg-ink p-12 text-paper flex flex-col justify-between rounded-sm relative overflow-hidden">
+             <div className="absolute top-0 right-0 w-64 h-64 bg-paper/5 -mr-32 -mt-32 rounded-full" />
+             <div>
+               <span className="text-[10px] uppercase font-bold tracking-[0.3em] opacity-40 block mb-6">Insight IA</span>
+               <p className="text-2xl font-serif leading-tight mb-8">
+                 "A consistência é a mãe da maestria. Você completou <span className="italic">{completedModules} etapas</span> da sua jornada intelectual."
+               </p>
+             </div>
+             <button 
+              onClick={() => setView('home')}
+              className="w-full py-4 border border-paper/20 hover:bg-paper hover:text-ink transition-all uppercase text-[10px] font-bold tracking-widest"
+             >
+               Continuar Estudos
+             </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const renderHome = () => (
     <div className="max-w-6xl mx-auto py-24 px-8">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-24 items-end mb-32">
@@ -453,16 +584,33 @@ export default function App() {
           <p className="text-xl text-ink/80 leading-relaxed mb-8 max-w-md">
             Utilizamos engenharia instrucional avançada e IA para quebrar a complexidade de qualquer PDF em módulos lógicos, analogias mundanas e simulados de alta retenção.
           </p>
-          <div className="flex gap-4">
-            {!user && (
+          <div className="flex flex-wrap gap-4">
+            {user ? (
+              <>
+                <button 
+                  onClick={() => window.scrollTo({ top: document.getElementById('dropzone-section')?.offsetTop || 800, behavior: 'smooth' })}
+                  className="bg-ink text-paper px-8 py-5 font-bold uppercase tracking-widest text-[10px] hover:bg-ink/90 transition-all rounded-sm flex items-center gap-3"
+                >
+                  <BookOpen size={14} />
+                  Novo Conteúdo
+                </button>
+                <button 
+                  onClick={() => setView('dashboard')}
+                  className="px-8 py-5 border border-ink/10 text-ink font-bold uppercase tracking-widest text-[10px] hover:bg-ink/5 transition-all rounded-sm flex items-center gap-3"
+                >
+                  <LayoutDashboard size={14} />
+                  Meu Rendimento
+                </button>
+              </>
+            ) : (
                <button 
                 onClick={signInWithGoogle}
-                className="bg-ink text-paper px-8 py-4 font-bold uppercase tracking-widest text-[10px] hover:opacity-90 transition-opacity"
+                className="bg-ink text-paper px-8 py-5 font-bold uppercase tracking-widest text-[10px] hover:opacity-90 transition-opacity"
               >
                 Iniciar Experiência
               </button>
             )}
-            <div className="font-mono text-[10px] uppercase tracking-widest text-ink/40 py-4">
+            <div className="font-mono text-[10px] uppercase tracking-widest text-ink/40 py-5 pl-4 flex items-center">
               [ 2026 EDITION ]
             </div>
           </div>
@@ -470,7 +618,9 @@ export default function App() {
       </div>
       
       {user ? (
-        <Dropzone onFileProcessed={handleUpload} />
+        <div id="dropzone-section">
+          <Dropzone onFileProcessed={handleUpload} />
+        </div>
       ) : (
         <div className="border border-ink/10 p-16 text-center rounded-sm bg-surface/50">
           <span className="section-label">Acesso Restrito</span>
@@ -500,7 +650,6 @@ export default function App() {
 
   const renderCourse = () => (
     <div className="flex flex-col lg:flex-row min-h-[calc(100vh-80px)]">
-      {/* Sidebar - Rail */}
       <aside className="w-full lg:w-24 border-b lg:border-b-0 lg:border-r border-ink/5 bg-surface flex flex-row lg:flex-col items-center py-4 lg:py-12 px-4 lg:px-0 gap-6 lg:gap-12 lg:sticky lg:top-20 lg:h-[calc(100vh-80px)] overflow-x-auto lg:overflow-y-auto scrollbar-hide shrink-0 z-40">
         <button 
           onClick={() => setView('home')}
@@ -548,7 +697,6 @@ export default function App() {
         </div>
       </aside>
 
-      {/* Main Column */}
       <div className="flex-1 bg-surface grid grid-cols-1 xl:grid-cols-[1fr_360px]">
         <main className="p-8 sm:p-16 lg:p-24 max-w-5xl border-r border-ink/5 relative mx-auto w-full">
           <AnimatePresence mode="wait">
@@ -570,7 +718,6 @@ export default function App() {
                       <span className="truncate max-w-[200px]">{currentCourse?.titulo}</span>
                     </div>
 
-                    {/* Quick Search Field */}
                     <div className="relative group/search max-w-sm w-full">
                       <form onSubmit={handleQuickSearch} className="relative">
                         <input 
@@ -621,7 +768,6 @@ export default function App() {
                   <Markdown>{activeModule.conteudo_aula}</Markdown>
                 </div>
 
-                {/* Professor AI Section */}
                 <div className="mt-16 pt-16 border-t border-ink/5 flex flex-col items-center">
                   <button 
                     onClick={handleProfessorAI}
@@ -695,7 +841,6 @@ export default function App() {
           </AnimatePresence>
         </main>
 
-        {/* Side Panel - Desktop */}
         <aside className="p-12 bg-paper hidden xl:flex flex-col gap-12 sticky top-20 h-[calc(100vh-80px)]">
           <div className="relative pt-8">
             <span className="section-label mb-6">Nota de Rodapé Educativa</span>
@@ -818,10 +963,12 @@ export default function App() {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.4 }}
           >
+            {view === 'landing' && renderLanding()}
             {view === 'home' && renderHome()}
             {view === 'course' && renderCourse()}
             {view === 'quiz' && renderQuiz()}
             {view === 'result' && renderResult()}
+            {view === 'dashboard' && renderDashboard()}
           </motion.div>
         </AnimatePresence>
       </main>
