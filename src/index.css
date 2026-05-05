@@ -1,0 +1,80 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Montserrat:wght@400;600;700&family=Inter:wght@400;500;600&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Cormorant Garamond", serif;
+  --font-display: "Montserrat", sans-serif;
+  
+  --color-paper: var(--color-paper);
+  --color-ink: var(--color-ink);
+  --color-surface: var(--color-surface);
+  --color-accent: #10B981;
+  --color-err: #EF4444;
+}
+
+@layer base {
+  :root {
+    --color-paper: #f5f2ed;
+    --color-ink: #1a1a1a;
+    --color-surface: #ffffff;
+  }
+
+  .dark {
+    --color-paper: #000000;
+    --color-ink: #f5f2ed;
+    --color-surface: #121212;
+  }
+
+  body {
+    @apply bg-paper font-sans text-ink antialiased transition-all duration-500;
+  }
+  
+  h1, h2, h3, h4 {
+    @apply font-serif font-light tracking-tight;
+  }
+}
+
+.editorial-border {
+  @apply border border-ink/10;
+}
+
+.editorial-divider {
+  @apply border-b border-ink/10;
+}
+
+.section-label {
+  @apply text-[10px] uppercase tracking-[0.2em] font-bold text-ink/40 mb-4 block;
+}
+
+.badge-editorial {
+  @apply px-3 py-1 border border-ink rounded-full text-[10px] uppercase font-bold tracking-wider;
+}
+
+.markdown-body {
+  @apply font-sans leading-[1.8] text-[17px] text-ink/90;
+}
+
+.markdown-body h1 { @apply font-serif text-4xl font-light mb-6 mt-10 tracking-tight leading-none; }
+.markdown-body h2 { @apply font-serif text-2xl font-light mb-4 mt-8 tracking-tight; }
+.markdown-body p { @apply mb-6; }
+.markdown-body blockquote { @apply border-l-2 border-ink pl-6 italic mb-6 text-xl text-ink/70; }
+.markdown-body ul { @apply list-disc pl-6 mb-6 space-y-2; }
+
+/* Custom scrollbar for editorial feel */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { @apply bg-paper; }
+::-webkit-scrollbar-thumb { @apply bg-ink/10 rounded-full; }
+
+.writing-mode-vertical-rl {
+  writing-mode: vertical-rl;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+

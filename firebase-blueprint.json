@@ -1,0 +1,90 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Informações do aluno",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email"]
+    },
+    "Course": {
+      "title": "Course",
+      "description": "Curso gerado a partir de um PDF",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "titulo": { "type": "string" },
+        "pdfUrl": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "titulo"]
+    },
+    "Module": {
+      "title": "Module",
+      "description": "Módulo de aprendizado",
+      "type": "object",
+      "properties": {
+        "courseId": { "type": "string" },
+        "ordem": { "type": "integer" },
+        "titulo": { "type": "string" },
+        "conteudo_aula": { "type": "string" },
+        "exemplo_pratico": { "type": "string" }
+      },
+      "required": ["courseId", "ordem", "titulo", "conteudo_aula"]
+    },
+    "Question": {
+      "title": "Question",
+      "description": "Questão do simulado",
+      "type": "object",
+      "properties": {
+        "moduleId": { "type": "string" },
+        "pergunta": { "type": "string" },
+        "opcoes": { "type": "object" },
+        "resposta_correta": { "type": "string" },
+        "explicacao_resposta": { "type": "string" }
+      },
+      "required": ["moduleId", "pergunta", "opcoes", "resposta_correta"]
+    },
+    "Progress": {
+      "title": "Progress",
+      "description": "Rastreamento de progresso",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "courseId": { "type": "string" },
+        "moduleId": { "type": "string" },
+        "score": { "type": "integer" },
+        "completed": { "type": "boolean" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "courseId", "moduleId", "completed"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Perfis de usuários"
+    },
+    "/courses/{courseId}": {
+      "schema": "Course",
+      "description": "Cursos criados"
+    },
+    "/courses/{courseId}/modules/{moduleId}": {
+      "schema": "Module",
+      "description": "Módulos de um curso"
+    },
+    "/courses/{courseId}/modules/{moduleId}/questions/{questionId}": {
+      "schema": "Question",
+      "description": "Questões de um módulo"
+    },
+    "/users/{userId}/progress/{progressId}": {
+      "schema": "Progress",
+      "description": "Progresso do usuário nos cursos"
+    }
+  }
+}

@@ -1,0 +1,51 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helpers
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // Users
+    match /users/{userId} {
+      allow read, get: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.keys().hasAll(['uid', 'email', 'createdAt']) && request.resource.data.uid == request.auth.uid;
+      allow update: if isOwner(userId) && request.resource.data.uid == resource.data.uid;
+    }
+
+    // Courses
+    match /courses/{courseId} {
+      allow read, list: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+
+      // Modules
+      match /modules/{moduleId} {
+        allow read, list: if isSignedIn();
+        allow create, update, delete: if isSignedIn() && get(/databases/$(database)/documents/courses/$(courseId)).data.userId == request.auth.uid;
+
+        // Questions
+        match /questions/{questionId} {
+          allow read, list: if isSignedIn();
+          allow create, update, delete: if isSignedIn() && get(/databases/$(database)/documents/courses/$(courseId)).data.userId == request.auth.uid;
+        }
+      }
+    }
+
+    // Progress
+    match /users/{userId}/progress/{progressId} {
+      allow read, list, write: if isOwner(userId);
+    }
+  }
+}
