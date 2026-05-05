@@ -26,7 +26,7 @@ import { onAuthStateChanged, User, signOut } from 'firebase/auth';
 import { cn } from './lib/utils';
 import { generateCourseFromText, getQuickExplanation, generateDidacticLesson } from './services/aiService';
 import { saveCourse, getUserCourses, getCourse, getModules, getProgress, updateProgress, deleteCourse } from './services/dbService';
-import { exportCourseToPDF } from './lib/pdfExport';
+import { exportCourseToPDF, exportDidacticLessonToPDF } from './lib/pdfExport';
 import { Course, Module, Progress, Question } from './types';
 
 // Components
@@ -646,14 +646,23 @@ export default function App() {
                         className="mt-12 w-full bg-paper border border-ink/10 p-8 sm:p-12 rounded-sm shadow-sm relative overflow-hidden"
                       >
                         <div className="absolute top-0 left-0 w-1 h-full bg-ink/20" />
-                        <div className="flex items-center gap-4 mb-8">
-                          <div className="w-10 h-10 rounded-full bg-ink flex items-center justify-center text-paper">
-                            <GraduationCap size={20} />
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-8">
+                          <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 rounded-full bg-ink flex items-center justify-center text-paper">
+                              <GraduationCap size={20} />
+                            </div>
+                            <div>
+                              <span className="text-[10px] uppercase font-bold tracking-[0.2em] text-ink/30 block">Aula Didática por</span>
+                              <span className="font-serif italic text-lg text-ink">Professor AI</span>
+                            </div>
                           </div>
-                          <div>
-                            <span className="text-[10px] uppercase font-bold tracking-[0.2em] text-ink/30 block">Aula Didática por</span>
-                            <span className="font-serif italic text-lg text-ink">Professor AI</span>
-                          </div>
+                          <button 
+                            onClick={() => activeModule && exportDidacticLessonToPDF(activeModule.titulo, didacticLesson)}
+                            className="flex items-center gap-2 text-[10px] uppercase font-bold tracking-widest text-ink/40 hover:text-ink transition-colors border border-ink/10 px-4 py-2 rounded-full hover:border-ink/30"
+                          >
+                            <Download size={14} />
+                            Salvar em PDF
+                          </button>
                         </div>
                         
                         <div className="markdown-body didactic-lesson selection:bg-ink selection:text-paper">
