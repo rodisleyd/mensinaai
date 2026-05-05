@@ -105,3 +105,34 @@ Explique de forma extremamente concisa (máximo 3 frases), clara e didática, fo
 
   return response.text || "Desculpe, não consegui processar sua dúvida no momento.";
 };
+
+export const generateDidacticLesson = async (topic: string, context: string) => {
+  const prompt = `Você é um Professor IA Genial, especializado em transformar temas complexos em aulas simples, envolventes e altamente didáticas.
+
+TEMA DA AULA: "${topic}"
+
+CONTEXTO BASE:
+"""
+${context}
+"""
+
+SUA MISSÃO:
+Crie uma aula completa sobre este tema, seguindo esta estrutura:
+1. **Introdução Criativa**: Comece com algo que prenda a atenção (uma curiosidade ou uma pergunta instigante).
+2. **Explicação Didática**: Explique o conceito central de forma clara, eliminando a "frieza" acadêmica. Use uma linguagem humana.
+3. **Exemplos Práticos**: Traga pelo menos 2 exemplos reais de como esse conceito se aplica no dia a dia.
+4. **Estudo de Caso (Case)**: Narre um pequeno cenário ou "história de sucesso" onde esse conhecimento fez a diferença.
+5. **Resumo "Para não esquecer"**: Uma lista rápida com os pontos chave.
+
+Use formatação Markdown para deixar a aula bonita (títulos, negritos, listas). Seja inspirador!`;
+
+  const response = await ai.models.generateContent({
+    model: "gemini-3-flash-preview",
+    contents: [{ parts: [{ text: prompt }] }],
+    config: {
+      temperature: 0.8,
+    }
+  });
+
+  return response.text || "Desculpe, o Professor IA não conseguiu preparar a aula agora.";
+};

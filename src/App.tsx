@@ -24,7 +24,7 @@ import Markdown from 'react-markdown';
 import { auth, signInWithGoogle } from './lib/firebase';
 import { onAuthStateChanged, User, signOut } from 'firebase/auth';
 import { cn } from './lib/utils';
-import { generateCourseFromText, getQuickExplanation } from './services/aiService';
+import { generateCourseFromText, getQuickExplanation, generateDidacticLesson } from './services/aiService';
 import { saveCourse, getUserCourses, getCourse, getModules, getProgress, updateProgress, deleteCourse } from './services/dbService';
 import { exportCourseToPDF } from './lib/pdfExport';
 import { Course, Module, Progress, Question } from './types';
@@ -322,6 +322,29 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResult, setSearchResult] = useState<string | null>(null);
   const [isSearching, setIsSearching] = useState(false);
+  
+  // Professor AI State
+  const [didacticLesson, setDidacticLesson] = useState<string | null>(null);
+  const [isGeneratingLesson, setIsGeneratingLesson] = useState(false);
+
+  useEffect(() => {
+    // Reset didactic lesson when changing modules
+    setDidacticLesson(null);
+  }, [activeModule?.id]);
+
+  const handleProfessorAI = async () => {
+    if (!activeModule) return;
+    setIsGeneratingLesson(true);
+    setDidacticLesson(null);
+    try {
+      const lesson = await generateDidacticLesson(activeModule.titulo, activeModule.conteudo_aula);
+      setDidacticLesson(lesson);
+    } catch (error) {
+      console.error("Erro ao gerar aula didática:", error);
+    } finally {
+      setIsGeneratingLesson(false);
+    }
+  };
 
   useEffect(() => {
     return onAuthStateChanged(auth, (u) => {
@@ -596,6 +619,58 @@ export default function App() {
 
                 <div className="markdown-body selection:bg-ink selection:text-paper">
                   <Markdown>{activeModule.conteudo_aula}</Markdown>
+                </div>
+
+                {/* Professor AI Section */}
+                <div className="mt-16 pt-16 border-t border-ink/5 flex flex-col items-center">
+                  <button 
+                    onClick={handleProfessorAI}
+                    disabled={isGeneratingLesson}
+                    className="group relative flex items-center gap-3 bg-surface border border-ink/20 px-8 py-4 rounded-full hover:border-ink/40 transition-all shadow-sm hover:shadow-md disabled:opacity-50"
+                  >
+                    {isGeneratingLesson ? (
+                      <Loader2 size={18} className="animate-spin text-ink/40" />
+                    ) : (
+                      <GraduationCap size={18} className="text-ink/40 group-hover:text-ink transition-colors" />
+                    )}
+                    <span className="text-xs font-bold uppercase tracking-widest text-ink/60 group-hover:text-ink transition-colors">
+                      {isGeneratingLesson ? "O Professor está preparando a aula..." : "Professor AI (Gerar Aula Didática)"}
+                    </span>
+                  </button>
+
+                  <AnimatePresence>
+                    {didacticLesson && (
+                      <motion.div 
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="mt-12 w-full bg-paper border border-ink/10 p-8 sm:p-12 rounded-sm shadow-sm relative overflow-hidden"
+                      >
+                        <div className="absolute top-0 left-0 w-1 h-full bg-ink/20" />
+                        <div className="flex items-center gap-4 mb-8">
+                          <div className="w-10 h-10 rounded-full bg-ink flex items-center justify-center text-paper">
+                            <GraduationCap size={20} />
+                          </div>
+                          <div>
+                            <span className="text-[10px] uppercase font-bold tracking-[0.2em] text-ink/30 block">Aula Didática por</span>
+                            <span className="font-serif italic text-lg text-ink">Professor AI</span>
+                          </div>
+                        </div>
+                        
+                        <div className="markdown-body didactic-lesson selection:bg-ink selection:text-paper">
+                          <Markdown>{didacticLesson}</Markdown>
+                        </div>
+                        
+                        <div className="mt-12 pt-8 border-t border-ink/5 flex justify-center">
+                           <button 
+                            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                            className="text-[10px] uppercase font-bold tracking-widest text-ink/30 hover:text-ink transition-colors"
+                          >
+                            Voltar ao Topo
+                          </button>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
 
                 <div className="mt-24 pt-12 border-t border-ink/10 xl:hidden">
