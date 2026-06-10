@@ -21,7 +21,9 @@ import {
   LayoutDashboard,
   TrendingUp,
   Award,
-  Trophy
+  Trophy,
+  Archive,
+  ArchiveRestore
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import Markdown from 'react-markdown';
@@ -29,7 +31,7 @@ import { auth, signInWithGoogle } from './lib/firebase';
 import { onAuthStateChanged, User, signOut } from 'firebase/auth';
 import { cn } from './lib/utils';
 import { generateCourseFromText, getQuickExplanation, generateDidacticLesson } from './services/aiService';
-import { saveCourse, getUserCourses, getCourse, getModules, getProgress, getAllUserProgress, updateProgress, deleteCourse } from './services/dbService';
+import { saveCourse, getUserCourses, getCourse, getModules, getProgress, getAllUserProgress, updateProgress, deleteCourse, archiveCourse } from './services/dbService';
 import { exportCourseToPDF, exportDidacticLessonToPDF } from './lib/pdfExport';
 import { Course, Module, Progress, Question } from './types';
 
@@ -863,7 +865,14 @@ export default function App() {
                 Iniciar Avaliação Final
             </button>
             <button 
-              onClick={() => setView('home')}
+              onClick={async () => {
+                if (currentCourse) {
+                  setIsLoading(true);
+                  await archiveCourse(currentCourse.id, true);
+                  setIsLoading(false);
+                  setView('home');
+                }
+              }}
               className="w-full border border-ink/10 py-4 font-bold uppercase tracking-widest text-[9px] text-ink/40 hover:text-ink hover:border-ink/30 transition-all"
             >
               Arquivar Documento
@@ -998,6 +1007,7 @@ export default function App() {
 const CourseList = ({ userId, onLoadCourse }: { userId: string, onLoadCourse: (id: string) => void }) => {
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'active' | 'archived'>('active');
 
   const fetchCourses = () => {
     setLoading(true);
@@ -1030,6 +1040,17 @@ const CourseList = ({ userId, onLoadCourse }: { userId: string, onLoadCourse: (i
     }
   };
 
+  const handleToggleArchive = async (e: React.MouseEvent, courseId: string, currentArchived: boolean) => {
+    e.stopPropagation();
+    setLoading(true);
+    const ok = await archiveCourse(courseId, !currentArchived);
+    if (ok) {
+      fetchCourses();
+    } else {
+      setLoading(false);
+    }
+  };
+
   if (loading) return <div className="flex justify-center p-24"><div className="w-8 h-8 border-2 border-ink animate-spin rounded-full border-t-transparent" /></div>;
   
   if (courses.length === 0) return (
@@ -1039,56 +1060,122 @@ const CourseList = ({ userId, onLoadCourse }: { userId: string, onLoadCourse: (i
     </div>
   );
 
+  const filteredCourses = courses.filter(course => {
+    if (activeTab === 'active') {
+      return !course.archived;
+    } else {
+      return !!course.archived;
+    }
+  });
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-      {courses.map(course => (
-        <div
-          key={course.id}
-          className="bg-surface border border-ink/5 hover:border-ink/20 transition-all flex flex-col justify-between group min-h-[320px] relative overflow-hidden"
+    <div className="space-y-12">
+      {/* Abas */}
+      <div className="flex gap-8 border-b border-ink/10 pb-0">
+        <button
+          onClick={() => setActiveTab('active')}
+          className={cn(
+            "pb-4 font-serif text-xl tracking-tight transition-all relative cursor-pointer",
+            activeTab === 'active' 
+              ? "text-ink font-bold" 
+              : "text-ink/40 hover:text-ink/60"
+          )}
         >
-          <div 
-            onClick={() => onLoadCourse(course.id)}
-            className="absolute inset-0 cursor-pointer z-0"
-          />
-          
-          <div className="absolute top-0 right-0 w-20 h-20 bg-ink/2 translate-x-10 -translate-y-10 rounded-full group-hover:scale-150 transition-transform pointer-events-none" />
-          
-          <div className="p-8 pb-4 relative z-10 pointer-events-none">
-            <span className="section-label mb-2 opacity-30">Course ID: {course.id.slice(0, 8).toUpperCase()}</span>
-            <h3 className="font-serif text-3xl leading-tight group-hover:italic transition-all">{course.titulo}</h3>
-          </div>
-          
-          <div className="p-8 pt-0 relative z-20 flex flex-col gap-4">
-             <div className="flex justify-between items-end pt-4 border-t border-ink/10 pointer-events-none">
-              <span className="font-mono text-[9px] uppercase tracking-wider text-ink/30">
-                {new Date(course.createdAt).toLocaleDateString()}
-              </span>
-              <button 
-                onClick={() => onLoadCourse(course.id)}
-                className="badge-editorial border-ink/20 text-ink/40 group-hover:border-ink group-hover:text-ink transition-colors pointer-events-auto"
-              >
-                Abrir
-              </button>
-            </div>
-            
-            <div className="flex gap-2">
-              <button 
-                onClick={(e) => handleDownload(e, course)}
-                className="flex-1 border border-ink/5 hover:border-ink/20 p-2.5 flex items-center justify-center gap-2 text-ink/40 hover:text-ink transition-all text-[9px] uppercase font-bold tracking-widest bg-paper font-sans"
-              >
-                <Download size={12} />
-                PDF
-              </button>
-              <button 
-                onClick={(e) => handleDelete(e, course.id)}
-                className="border border-ink/5 hover:border-err hover:text-err p-2.5 transition-all bg-paper flex items-center justify-center"
-              >
-                <Trash2 size={12} />
-              </button>
-            </div>
-          </div>
+          Matérias em Estudo
+          {activeTab === 'active' && (
+            <motion.div 
+              layoutId="activeTabUnderline" 
+              className="absolute bottom-0 left-0 right-0 h-[2px] bg-ink" 
+            />
+          )}
+        </button>
+        <button
+          onClick={() => setActiveTab('archived')}
+          className={cn(
+            "pb-4 font-serif text-xl tracking-tight transition-all relative cursor-pointer flex items-center gap-2",
+            activeTab === 'archived' 
+              ? "text-ink font-bold" 
+              : "text-ink/40 hover:text-ink/60"
+          )}
+        >
+          Arquivo de Concluídos
+          {activeTab === 'archived' && (
+            <motion.div 
+              layoutId="activeTabUnderline" 
+              className="absolute bottom-0 left-0 right-0 h-[2px] bg-ink" 
+            />
+          )}
+        </button>
+      </div>
+
+      {filteredCourses.length === 0 ? (
+        <div className="border border-ink/10 rounded-sm p-32 text-center bg-surface/50 border-dashed">
+          <span className="section-label opacity-30">Status: Vazio</span>
+          <p className="font-serif italic text-2xl text-ink/20">
+            {activeTab === 'active' 
+              ? "Nenhuma matéria ativa em andamento." 
+              : "Nenhuma matéria concluída ou arquivada."}
+          </p>
         </div>
-      ))}
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {filteredCourses.map(course => (
+            <div
+              key={course.id}
+              className="bg-surface border border-ink/5 hover:border-ink/20 transition-all flex flex-col justify-between group min-h-[320px] relative overflow-hidden"
+            >
+              <div 
+                onClick={() => onLoadCourse(course.id)}
+                className="absolute inset-0 cursor-pointer z-0"
+              />
+              
+              <div className="absolute top-0 right-0 w-20 h-20 bg-ink/2 translate-x-10 -translate-y-10 rounded-full group-hover:scale-150 transition-transform pointer-events-none" />
+              
+              <div className="p-8 pb-4 relative z-10 pointer-events-none">
+                <span className="section-label mb-2 opacity-30">Course ID: {course.id.slice(0, 8).toUpperCase()}</span>
+                <h3 className="font-serif text-3xl leading-tight group-hover:italic transition-all">{course.titulo}</h3>
+              </div>
+              
+              <div className="p-8 pt-0 relative z-20 flex flex-col gap-4">
+                 <div className="flex justify-between items-end pt-4 border-t border-ink/10 pointer-events-none">
+                  <span className="font-mono text-[9px] uppercase tracking-wider text-ink/30">
+                    {new Date(course.createdAt).toLocaleDateString()}
+                  </span>
+                  <button 
+                    onClick={() => onLoadCourse(course.id)}
+                    className="badge-editorial border-ink/20 text-ink/40 group-hover:border-ink group-hover:text-ink transition-colors pointer-events-auto"
+                  >
+                    Abrir
+                  </button>
+                </div>
+                
+                <div className="flex gap-2">
+                  <button 
+                    onClick={(e) => handleDownload(e, course)}
+                    className="flex-1 border border-ink/5 hover:border-ink/20 p-2.5 flex items-center justify-center gap-2 text-ink/40 hover:text-ink transition-all text-[9px] uppercase font-bold tracking-widest bg-paper font-sans"
+                  >
+                    <Download size={12} />
+                    PDF
+                  </button>
+                  <button 
+                    onClick={(e) => handleToggleArchive(e, course.id, !!course.archived)}
+                    className="border border-ink/5 hover:border-ink/20 p-2.5 transition-all bg-paper flex items-center justify-center text-ink/40 hover:text-ink"
+                    title={course.archived ? "Desarquivar matéria" : "Arquivar matéria"}
+                  >
+                    {course.archived ? <ArchiveRestore size={12} /> : <Archive size={12} />}
+                  </button>
+                  <button 
+                    onClick={(e) => handleDelete(e, course.id)}
+                    className="border border-ink/5 hover:border-err hover:text-err p-2.5 transition-all bg-paper flex items-center justify-center"
+                  >
+                    <Trash2 size={12} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

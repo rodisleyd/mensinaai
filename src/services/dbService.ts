@@ -157,3 +157,14 @@ export const deleteCourse = async (courseId: string) => {
     return false;
   }
 };
+
+export const archiveCourse = async (courseId: string, archived: boolean) => {
+  try {
+    const docRef = doc(db, 'courses', courseId);
+    await setDoc(docRef, { archived }, { merge: true });
+    return true;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, `courses/${courseId}`);
+    return false;
+  }
+};

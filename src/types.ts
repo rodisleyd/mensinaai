@@ -4,6 +4,7 @@ export interface Course {
   titulo: string;
   pdfUrl?: string;
   createdAt: number;
+  archived?: boolean;
 }
 
 export interface Module {
