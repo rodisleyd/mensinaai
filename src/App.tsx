@@ -1008,6 +1008,7 @@ const CourseList = ({ userId, onLoadCourse }: { userId: string, onLoadCourse: (i
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'active' | 'archived'>('active');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const fetchCourses = () => {
     setLoading(true);
@@ -1061,60 +1062,77 @@ const CourseList = ({ userId, onLoadCourse }: { userId: string, onLoadCourse: (i
   );
 
   const filteredCourses = courses.filter(course => {
-    if (activeTab === 'active') {
-      return !course.archived;
-    } else {
-      return !!course.archived;
-    }
+    const matchesTab = activeTab === 'active' ? !course.archived : !!course.archived;
+    const matchesSearch = course.titulo.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesTab && matchesSearch;
   });
 
   return (
     <div className="space-y-12">
-      {/* Abas */}
-      <div className="flex gap-8 border-b border-ink/10 pb-0">
-        <button
-          onClick={() => setActiveTab('active')}
-          className={cn(
-            "pb-4 font-serif text-xl tracking-tight transition-all relative cursor-pointer",
-            activeTab === 'active' 
-              ? "text-ink font-bold" 
-              : "text-ink/40 hover:text-ink/60"
-          )}
-        >
-          Matérias em Estudo
-          {activeTab === 'active' && (
-            <motion.div 
-              layoutId="activeTabUnderline" 
-              className="absolute bottom-0 left-0 right-0 h-[2px] bg-ink" 
-            />
-          )}
-        </button>
-        <button
-          onClick={() => setActiveTab('archived')}
-          className={cn(
-            "pb-4 font-serif text-xl tracking-tight transition-all relative cursor-pointer flex items-center gap-2",
-            activeTab === 'archived' 
-              ? "text-ink font-bold" 
-              : "text-ink/40 hover:text-ink/60"
-          )}
-        >
-          Arquivo de Concluídos
-          {activeTab === 'archived' && (
-            <motion.div 
-              layoutId="activeTabUnderline" 
-              className="absolute bottom-0 left-0 right-0 h-[2px] bg-ink" 
-            />
-          )}
-        </button>
+      {/* Abas e Busca */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-ink/10 pb-4">
+        {/* Abas */}
+        <div className="flex gap-8">
+          <button
+            onClick={() => { setActiveTab('active'); setSearchQuery(''); }}
+            className={cn(
+              "pb-4 font-serif text-xl tracking-tight transition-all relative cursor-pointer",
+              activeTab === 'active' 
+                ? "text-ink font-bold" 
+                : "text-ink/40 hover:text-ink/60"
+            )}
+          >
+            Matérias em Estudo
+            {activeTab === 'active' && (
+              <motion.div 
+                layoutId="activeTabUnderline" 
+                className="absolute bottom-0 left-0 right-0 h-[2px] bg-ink" 
+              />
+            )}
+          </button>
+          <button
+            onClick={() => { setActiveTab('archived'); setSearchQuery(''); }}
+            className={cn(
+              "pb-4 font-serif text-xl tracking-tight transition-all relative cursor-pointer flex items-center gap-2",
+              activeTab === 'archived' 
+                ? "text-ink font-bold" 
+                : "text-ink/40 hover:text-ink/60"
+            )}
+          >
+            Arquivo de Concluídos
+            {activeTab === 'archived' && (
+              <motion.div 
+                layoutId="activeTabUnderline" 
+                className="absolute bottom-0 left-0 right-0 h-[2px] bg-ink" 
+              />
+            )}
+          </button>
+        </div>
+
+        {/* Busca de Cursos */}
+        <div className="relative max-w-xs w-full pb-4 md:pb-0">
+          <input 
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Buscar matéria..."
+            className="w-full bg-surface border border-ink/20 rounded-full py-2 pl-4 pr-10 text-sm font-serif italic focus:outline-none focus:border-ink/40 transition-all placeholder:text-ink/40 text-ink"
+          />
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-ink/30">
+            <Search size={16} />
+          </span>
+        </div>
       </div>
 
       {filteredCourses.length === 0 ? (
         <div className="border border-ink/10 rounded-sm p-32 text-center bg-surface/50 border-dashed">
           <span className="section-label opacity-30">Status: Vazio</span>
           <p className="font-serif italic text-2xl text-ink/20">
-            {activeTab === 'active' 
-              ? "Nenhuma matéria ativa em andamento." 
-              : "Nenhuma matéria concluída ou arquivada."}
+            {searchQuery 
+              ? "Nenhuma matéria corresponde à busca." 
+              : activeTab === 'active' 
+                ? "Nenhuma matéria ativa em andamento." 
+                : "Nenhuma matéria concluída ou arquivada."}
           </p>
         </div>
       ) : (
