@@ -30,7 +30,7 @@ Retorne APENAS um objeto JSON no formato especificado.`;
   parts.push({ text: promptText });
 
   const response = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
+    model: "gemini-2.5-flash",
     contents: [{ parts }],
     config: {
       responseMimeType: "application/json",
@@ -96,7 +96,7 @@ Ele tem a seguinte dúvida ou quer entender melhor este termo: "${query}"
 Explique de forma extremamente concisa (máximo 3 frases), clara e didática, focando no contexto do texto que ele está lendo. Use um tom amigável e encorajador.`;
 
   const response = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
+    model: "gemini-2.5-flash",
     contents: [{ parts: [{ text: prompt }] }],
     config: {
       temperature: 0.7,
@@ -127,7 +127,7 @@ Crie uma aula completa sobre este tema, seguindo esta estrutura:
 Use formatação Markdown para deixar a aula bonita (títulos, negritos, listas). Seja inspirador!`;
 
   const response = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
+    model: "gemini-2.5-flash",
     contents: [{ parts: [{ text: prompt }] }],
     config: {
       temperature: 0.8,

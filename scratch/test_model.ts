@@ -6,7 +6,7 @@ async function test() {
   const apiKey = "AIzaSyBDnXDboZ-LgzBv1_QVXvGSOu70s8jTF7o";
   const genAI = new GoogleGenAI({ apiKey });
   
-  const models = ["gemini-1.5-flash", "gemini-1.5-flash-latest", "gemini-2.0-flash-exp", "gemini-3-flash-preview"];
+  const models = ["gemini-1.5-flash", "gemini-1.5-flash-latest", "gemini-2.0-flash-exp", "gemini-2.5-flash", "gemini-3-flash-preview"];
   
   for (const model of models) {
     try {
